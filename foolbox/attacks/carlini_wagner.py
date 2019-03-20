@@ -30,7 +30,7 @@ class CarliniWagnerL2Attack(Attack):
                  binary_search_steps=5, max_iterations=1000,
                  confidence=0, learning_rate=5e-3,
                  initial_const=1e-2, abort_early=True):
-
+        print('verbose:', self._verbose)
         """The L2 version of the Carlini & Wagner attack.
 
         Parameters

@@ -56,11 +56,12 @@ class Attack(ABC):
 
     def __init__(self,
                  model=None, criterion=Misclassification(),
-                 distance=MSE, threshold=None):
+                 distance=MSE, threshold=None, verbose=False):
         self._default_model = model
         self._default_criterion = criterion
         self._default_distance = distance
         self._default_threshold = threshold
+        self._verbose = verbose
 
         # to customize the initialization in subclasses, please
         # try to overwrite _initialize instead of __init__ if
@@ -121,7 +122,8 @@ def call_decorator(call_fn):
                                      ' needs to be called with an Adversarial'
                                      ' instance.')
                 a = Adversarial(model, criterion, input_or_adv, label,
-                                distance=distance, threshold=threshold)
+                                distance=distance, threshold=threshold,
+                                verbose=self._verbose)
 
         assert a is not None
 

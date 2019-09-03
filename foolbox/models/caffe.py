@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import numpy as np
+import warnings
 from .base import DifferentiableModel
 from .. import utils
 
 
-class CaffeModel(DifferentiableModel):
+class CaffeModel(DifferentiableModel):  # pragma: no cover
     def __init__(self,
                  net,
                  bounds,
@@ -16,6 +18,11 @@ class CaffeModel(DifferentiableModel):
         super(CaffeModel, self).__init__(bounds=bounds,
                                          channel_axis=channel_axis,
                                          preprocessing=preprocessing)
+
+        warnings.warn('Caffe was superseeded by Caffe2 and now PyTorch 1.0,'
+                      ' thus Caffe support in Foolbox will be removed',
+                      DeprecationWarning)
+
         import caffe
         self.net = net
         assert isinstance(net, caffe.Net)
@@ -28,19 +35,19 @@ class CaffeModel(DifferentiableModel):
     def num_classes(self):
         return self.net.blobs[self.output_blob_name].data.shape[-1]
 
-    def batch_predictions(self, images):
-        images, _ = self._process_input(images)
-        self.net.blobs[self.data_blob_name].reshape(*images.shape)
-        self.net.blobs[self.label_blob_name].reshape(images.shape[0])
-        self.net.blobs[self.data_blob_name].data[:] = images
+    def forward(self, inputs):
+        inputs, _ = self._process_input(inputs)
+        self.net.blobs[self.data_blob_name].reshape(*inputs.shape)
+        self.net.blobs[self.label_blob_name].reshape(inputs.shape[0])
+        self.net.blobs[self.data_blob_name].data[:] = inputs
         self.net.forward()
         return self.net.blobs[self.output_blob_name].data
 
-    def predictions_and_gradient(self, image, label):
-        input_shape = image.shape
+    def forward_and_gradient_one(self, x, label):
+        input_shape = x.shape
 
-        image, dpdx = self._process_input(image)
-        self.net.blobs[self.data_blob_name].data[0, :] = image
+        x, dpdx = self._process_input(x)
+        self.net.blobs[self.data_blob_name].data[0, :] = x
         self.net.blobs[self.label_blob_name].data[0] = label
 
         self.net.forward()
@@ -53,14 +60,20 @@ class CaffeModel(DifferentiableModel):
 
         return predictions, grad
 
-    def _loss_fn(self, image, label):
-        logits = self.batch_predictions(image[None])
+    def gradient(self, inputs, labels):
+        if inputs.shape[0] == labels.shape[0] == 1:
+            _, g = self.forward_and_gradient_one(inputs[0], labels[0])
+            return g[np.newaxis]
+        raise NotImplementedError
+
+    def _loss_fn(self, x, label):
+        logits = self.forward(x[None])
         return utils.batch_crossentropy([label], logits)
 
-    def backward(self, gradient, image):
-        input_shape = image.shape
-        image, dpdx = self._process_input(image)
-        self.net.blobs[self.data_blob_name].data[:] = image
+    def _backward_one(self, gradient, x):
+        input_shape = x.shape
+        x, dpdx = self._process_input(x)
+        self.net.blobs[self.data_blob_name].data[:] = x
         self.net.forward()
         self.net.blobs[self.output_blob_name].diff[...] = gradient
         grad_data = self.net.backward(start=self.output_blob_name,
@@ -70,3 +83,8 @@ class CaffeModel(DifferentiableModel):
         assert grad.shape == input_shape
 
         return grad
+
+    def backward(self, gradient, inputs):
+        if inputs.shape[0] == gradient.shape[0] == 1:
+            return self._backward_one(gradient[0], inputs[0])[np.newaxis]
+        raise NotImplementedError

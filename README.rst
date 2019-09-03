@@ -23,14 +23,20 @@ Installation
 
 .. code-block:: bash
 
+   # Foolbox 1.8
    pip install foolbox
+   
+   # Foolbox 2.0 beta
+   pip install foolbox --pre
 
-We test using Python 2.7, 3.5 and 3.6. Other Python versions might work as well. **We recommend using Python 3!**
+Foolbox requires Python 3.5 or newer (since Foolbox 2.0).
 
 Documentation
 -------------
 
 Documentation is available on readthedocs: http://foolbox.readthedocs.io/
+
+For the 2.0 beta, please go to https://foolbox.readthedocs.io/en/latest/
 
 Our paper describing Foolbox is on arXiv: https://arxiv.org/abs/1707.04131
 
@@ -156,10 +162,3 @@ Authors
 
 * `Jonas Rauber <https://github.com/jonasrauber>`_
 * `Wieland Brendel <https://github.com/wielandbrendel>`_
-
-------------
-
-.. image:: http://bethgelab.org/media/banners/benchmark_banner_small.png
-    :target: https://robust.vision/benchmark
-
-You might want to have a look at our recently announced `Robust Vision Benchmark <https://robust.vision/benchmark>`__.

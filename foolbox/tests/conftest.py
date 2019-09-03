@@ -69,12 +69,14 @@ def model(image):
     predictions = np.array([1., 0., 0.5] * 111 + [2.] + [0.3, 0.5, 1.1] * 222)
     model = Mock()
     model.bounds = Mock(return_value=(0, 255))
-    model.predictions = Mock(return_value=predictions)
-    model.batch_predictions = Mock(return_value=predictions[np.newaxis])
+    model.forward_one = Mock(return_value=predictions)
+    model.forward = Mock(return_value=predictions[np.newaxis])
     gradient = image
-    model.predictions_and_gradient = Mock(return_value=(predictions, gradient))  # noqa: E501
-    model.gradient = Mock(return_value=gradient)
-    model.backward = Mock(return_value=gradient)
+    model.forward_and_gradient_one = Mock(return_value=(predictions, gradient))
+    model.gradient_one = Mock(return_value=gradient)
+    model.backward_one = Mock(return_value=gradient)
+    model.gradient = Mock(return_value=gradient[np.newaxis])
+    model.backward = Mock(return_value=gradient[np.newaxis])
     model.num_classes = Mock(return_value=1000)
     model.channel_axis = Mock(return_value=3)
     return model
@@ -115,7 +117,7 @@ def bn_model():
 
 # bn_model is also needed as a function, so we create the fixture separately
 @pytest.fixture(name='bn_model')
-def bn_model_fixutre():
+def bn_model_fixture():
     cm_model = contextmanager(bn_model)
     with cm_model() as model:
         yield model
@@ -190,7 +192,7 @@ def gl_bn_model():
 
 # gl_bn_model is also needed as a function, so we create the fixture separately
 @pytest.fixture(name='gl_bn_model')
-def gl_bn_model_fixutre():
+def gl_bn_model_fixture():
     cm_model = contextmanager(gl_bn_model)
     with cm_model() as model:
         yield model
@@ -228,6 +230,13 @@ def bn_image():
 
 
 @pytest.fixture
+def bn_images():
+    np.random.seed(22)
+    image = np.random.uniform(size=(7, 5, 5, 10)).astype(np.float32)
+    return image
+
+
+@pytest.fixture
 def bn_image_pytorch():
     np.random.seed(22)
     image = np.random.uniform(size=(10, 5, 5)).astype(np.float32)
@@ -241,6 +250,14 @@ def bn_label(bn_image):
     assert mean.shape == (10,)
     label = np.argmax(mean)
     return label
+
+
+@pytest.fixture
+def bn_labels(bn_images):
+    images = bn_images
+    mean = np.mean(images, axis=(1, 2))
+    labels = np.argmax(mean, axis=-1)
+    return labels
 
 
 @pytest.fixture
@@ -382,7 +399,7 @@ def bn_adversarial_pytorch(bn_model_pytorch, bn_criterion,
     image = bn_image_pytorch
     label = bn_label_pytorch
     adv = Adversarial(model, criterion, image, label)
-    assert adv.image is None
+    assert adv.perturbed is None
     assert adv.distance.value == np.inf
     return adv
 
@@ -395,7 +412,7 @@ def bn_targeted_adversarial_pytorch(bn_model_pytorch, bn_targeted_criterion,
     image = bn_image_pytorch
     label = bn_label_pytorch
     adv = Adversarial(model, criterion, image, label)
-    assert adv.image is None
+    assert adv.perturbed is None
     assert adv.distance.value == np.inf
     return adv
 
@@ -439,7 +456,7 @@ def binarized_bn_model():
 # binarized_bn_model is also needed as a function, so we create the
 # fixture separately
 @pytest.fixture(name='bn_model')
-def binarized_bn_model_fixutre():
+def binarized_bn_model_fixture():
     cm_model = contextmanager(binarized_bn_model)
     with cm_model() as model:
         yield model
@@ -505,7 +522,7 @@ def binarized2_bn_model():
 # binarized2_bn_model is also needed as a function, so we create the
 # fixture separately
 @pytest.fixture(name='binarized2_bn_model')
-def binarized2_bn_model_fixutre():
+def binarized2_bn_model_fixture():
     cm_model = contextmanager(binarized2_bn_model)
     with cm_model() as model:
         yield model

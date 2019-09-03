@@ -33,14 +33,13 @@ tests_require = [
 setup(
     name="foolbox",
     version=version,
-    description="Python toolbox to create adversarial examples that fool neural networks",  # noqa: E501
+    description="Python toolbox to create adversarial examples that fool neural networks",
     long_description=README,
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
@@ -57,6 +56,5 @@ setup(
     install_requires=install_requires,
     extras_require={
         'testing': tests_require,
-        ':python_version == "2.7"': ['future', 'futures'],
     },
 )

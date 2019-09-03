@@ -40,3 +40,7 @@ Decision-based attacks
 .. autoclass:: BlendedUniformNoiseAttack
    :members:
    :special-members:
+
+.. autoclass:: HopSkipJumpAttack
+   :members:
+   :special-members:

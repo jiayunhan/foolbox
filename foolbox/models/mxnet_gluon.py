@@ -53,43 +53,69 @@ class MXNetGluonModel(DifferentiableModel):
     def num_classes(self):
         return self._num_classes
 
-    def batch_predictions(self, images):
+    def forward(self, inputs):
         import mxnet as mx
-        images, _ = self._process_input(images)
-        data_array = mx.nd.array(images, ctx=self._device)
+        inputs, _ = self._process_input(inputs)
+        data_array = mx.nd.array(inputs, ctx=self._device)
         data_array.attach_grad()
         with mx.autograd.record(train_mode=False):
             L = self._block(data_array)
         return L.asnumpy()
 
-    def predictions_and_gradient(self, image, label):
+    def forward_and_gradient_one(self, x, label):
         import mxnet as mx
-        image, dpdx = self._process_input(image)
-        label = mx.nd.array([label])
-        data_array = mx.nd.array(image[np.newaxis], ctx=self._device)
+        x, dpdx = self._process_input(x)
+        label = mx.nd.array([label], ctx=self._device)
+        data_array = mx.nd.array(x[np.newaxis], ctx=self._device)
         data_array.attach_grad()
         with mx.autograd.record(train_mode=False):
             logits = self._block(data_array)
             loss = mx.nd.softmax_cross_entropy(logits, label)
-            loss.backward()
+        loss.backward(train_mode=False)
         predictions = np.squeeze(logits.asnumpy(), axis=0)
         gradient = np.squeeze(data_array.grad.asnumpy(), axis=0)
         gradient = self._process_gradient(dpdx, gradient)
         return predictions, gradient
 
-    def _loss_fn(self, image, label):
+    def gradient(self, inputs, labels):
         import mxnet as mx
-        image, _ = self._process_input(image)
-        label = mx.nd.array([label])
-        data_array = mx.nd.array(image[np.newaxis], ctx=self._device)
+        inputs, dpdx = self._process_input(inputs)
+        inputs = mx.nd.array(inputs, ctx=self._device)
+        labels = mx.nd.array(labels, ctx=self._device)
+        inputs.attach_grad()
+        with mx.autograd.record(train_mode=False):
+            logits = self._block(inputs)
+            loss = mx.nd.softmax_cross_entropy(logits, labels)
+        loss.backward(train_mode=False)
+        gradient = inputs.grad.asnumpy()
+        gradient = self._process_gradient(dpdx, gradient)
+        return gradient
+
+    def _loss_fn(self, x, label):
+        import mxnet as mx
+        x, _ = self._process_input(x)
+        label = mx.nd.array([label], ctx=self._device)
+        data_array = mx.nd.array(x[np.newaxis], ctx=self._device)
         data_array.attach_grad()
         with mx.autograd.record(train_mode=False):
             logits = self._block(data_array)
             loss = mx.nd.softmax_cross_entropy(logits, label)
-            loss.backward()
+        loss.backward(train_mode=False)
         return loss.asnumpy()
 
-    def backward(self, gradient, image):  # pragma: no cover
-        # TODO: backward functionality has not yet been implemented
-        # for MXNetGluonModel
-        raise NotImplementedError
+    def backward(self, gradient, inputs):
+        # lazy import
+        import mxnet as mx
+
+        assert gradient.ndim == 2
+        inputs, dpdx = self._process_input(inputs)
+        inputs = mx.nd.array(inputs, ctx=self._device)
+        gradient = mx.nd.array(gradient, ctx=self._device)
+        inputs.attach_grad()
+        with mx.autograd.record(train_mode=False):
+            logits = self._block(inputs)
+        assert gradient.shape == logits.shape
+        logits.backward(gradient, train_mode=False)
+        gradient = inputs.grad.asnumpy()
+        gradient = self._process_gradient(dpdx, gradient)
+        return gradient

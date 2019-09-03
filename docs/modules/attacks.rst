@@ -44,6 +44,9 @@
    IterativeGradientAttack
    IterativeGradientSignAttack
    CarliniWagnerL2Attack
+   EADAttack
+   DecoupledDirectionNormL2Attack
+   SparseFoolAttack
 
 
 .. rubric:: :doc:`attacks/score`
@@ -70,6 +73,7 @@
    AdditiveGaussianNoiseAttack
    SaltAndPepperNoiseAttack
    BlendedUniformNoiseAttack
+   HopSkipJumpAttack
 
 
 .. rubric:: :doc:`attacks/other`
@@ -78,4 +82,5 @@
    :nosignatures:
 
    BinarizationRefinementAttack
-   PrecomputedImagesAttack
+   PrecomputedAdversarialsAttack
+   InversionAttack

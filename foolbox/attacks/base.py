@@ -11,6 +11,7 @@ else:  # pragma: no cover
     ABC = abc.ABCMeta('ABC', (), {})
 
 from ..adversarial import Adversarial
+from ..yielding_adversarial import YieldingAdversarial
 from ..adversarial import StopAttack
 from ..criteria import Misclassification
 from ..distances import MSE
@@ -29,10 +30,10 @@ class Attack(ABC):
         The model that should be fooled by the adversarial.
         Ignored if the attack is called with an :class:`Adversarial` instance.
     criterion : a :class:`Criterion` instance
-        The criterion that determines which images are adversarial.
+        The criterion that determines which inputs are adversarial.
         Ignored if the attack is called with an :class:`Adversarial` instance.
     distance : a :class:`Distance` class
-        The measure used to quantify similarity between images.
+        The measure used to quantify similarity between inputs.
         Ignored if the attack is called with an :class:`Adversarial` instance.
     threshold : float or :class:`Distance`
         If not None, the attack will stop as soon as the adversarial
@@ -102,7 +103,10 @@ def call_decorator(call_fn):
     def wrapper(self, input_or_adv, label=None, unpack=True, **kwargs):
         assert input_or_adv is not None
 
-        if isinstance(input_or_adv, Adversarial):
+        if isinstance(input_or_adv, YieldingAdversarial):
+            raise ValueError('If you pass an Adversarial instance, it must not be a YieldingAdversarial instance'
+                             ' when calling non-batch-supporting attacks like this one (check foolbox.batch_attacks).')
+        elif isinstance(input_or_adv, Adversarial):
             a = input_or_adv
             if label is not None:
                 raise ValueError('Label must not be passed when input_or_adv'
@@ -144,13 +148,13 @@ def call_decorator(call_fn):
                 # stopping of the attack
                 logging.info('threshold reached, stopping attack')
 
-        if a.image is None:
+        if a.perturbed is None:
             warnings.warn('{} did not find an adversarial, maybe the model'
                           ' or the criterion is not supported by this'
                           ' attack.'.format(self.name()))
 
         if unpack:
-            return a.image
+            return a.perturbed
         else:
             return a
 
